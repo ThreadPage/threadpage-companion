@@ -1,0 +1,20 @@
+{
+  "name": "threadpage",
+  "interface": {
+    "displayName": "ThreadPage"
+  },
+  "plugins": [
+    {
+      "name": "threadpage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/threadpage-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

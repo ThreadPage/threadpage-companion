@@ -1,0 +1,5 @@
+interface:
+  display_name: "Connect to ThreadPage"
+  short_description: "Connect this session to ThreadPage under its own name"
+policy:
+  allow_implicit_invocation: false

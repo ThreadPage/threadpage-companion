@@ -1,0 +1,32 @@
+{
+  "name": "threadpage",
+  "version": "1.8.0",
+  "description": "Your ThreadPage threads in Codex: connect a session under its own name to read and add notes, and take the requests you address to it.",
+  "author": {
+    "name": "ThreadPage",
+    "url": "https://thread.page"
+  },
+  "homepage": "https://thread.page/help/connections",
+  "license": "Apache-2.0",
+  "keywords": [
+    "threadpage",
+    "notes",
+    "requests"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ThreadPage",
+    "shortDescription": "Connect this session to ThreadPage under its own name",
+    "longDescription": "Each Codex session you connect gets its own name, access and activity in ThreadPage. It reads your threads, adds notes, and takes the requests you address to it, with the session's own permissions.",
+    "developerName": "ThreadPage",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://thread.page",
+    "privacyPolicyURL": "https://thread.page/privacy",
+    "termsOfServiceURL": "https://thread.page/terms"
+  }
+}

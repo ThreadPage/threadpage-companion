@@ -1,0 +1,18 @@
+{
+  "name": "threadpage",
+  "owner": {
+    "name": "ThreadPage",
+    "url": "https://thread.page"
+  },
+  "metadata": {
+    "description": "ThreadPage for Claude Code: each session you connect gets its own name, access and activity in ThreadPage."
+  },
+  "plugins": [
+    {
+      "name": "threadpage",
+      "source": "./plugins/threadpage",
+      "description": "Connect a Claude Code session to ThreadPage under its own name: read your threads, add notes, and take the requests you address to it.",
+      "category": "productivity"
+    }
+  ]
+}

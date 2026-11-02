@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "threadpage_session": {
+      "command": "node",
+      "args": ["./server/launch.mjs"],
+      "cwd": ".",
+      "env": {
+        "THREADPAGE_AGENT": "codex"
+      },
+      "env_vars": [
+        "PWD",
+        "CODEX_HOME",
+        "BROWSER",
+        "DISPLAY",
+        "WAYLAND_DISPLAY",
+        "SSH_CONNECTION",
+        "SSH_TTY",
+        "XDG_STATE_HOME",
+        "DBUS_SESSION_BUS_ADDRESS",
+        "NODE_OPTIONS",
+        "NODE_EXTRA_CA_CERTS",
+        "THREADPAGE_ORIGIN",
+        "THREADPAGE_KEYSTORE"
+      ],
+      "startup_timeout_sec": 10,
+      "tool_timeout_sec": 660
+    }
+  }
+}

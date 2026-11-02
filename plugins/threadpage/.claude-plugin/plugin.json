@@ -1,0 +1,20 @@
+{
+  "name": "threadpage",
+  "version": "1.8.0",
+  "description": "Your ThreadPage threads in Claude Code: connect a session under its own name to read and add notes, and take the requests you address to it.",
+  "author": {
+    "name": "ThreadPage",
+    "url": "https://thread.page"
+  },
+  "homepage": "https://thread.page/help/connections",
+  "license": "Apache-2.0",
+  "mcpServers": {
+    "threadpage": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/server/launch.mjs"
+      ]
+    }
+  },
+  "privacyPolicyUrl": "https://thread.page/privacy"
+}
