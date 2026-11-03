@@ -9,7 +9,7 @@ ThreadPage (https://thread.page) is a private workspace for ongoing work. Its MC
 
 ## Connect
 
-This skill comes with the ThreadPage plugin for Codex, which is this session's own connection to ThreadPage. If a ThreadPage note tool answers "Connect this session first", or none is available, the session isn't connected yet: ask the person to type `$threadpage:connect` (or `$threadpage:connect as <name>` to choose the session's name). They approve it in ThreadPage in the browser. Don't add ThreadPage another way, as a connector or an MCP server: that second connection wouldn't act under this session's name.
+This skill comes with the ThreadPage plugin for Codex, which is this session's own connection to ThreadPage and reaches the server named above for it. If a ThreadPage note tool answers "Connect this session first", or none is available, the session isn't connected yet: ask the person to type `$threadpage:connect` (or `$threadpage:connect as <name>` to choose the session's name). They approve it in ThreadPage in the browser. Don't add ThreadPage another way, as a connector or an MCP server: that second connection wouldn't act under this session's name.
 
 If the person asks for something your tools don't do, call get_access and give them its manage_url.
 

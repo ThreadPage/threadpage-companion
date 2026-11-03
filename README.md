@@ -1,6 +1,6 @@
 # ThreadPage local clients
 
-The ThreadPage plugins for Claude Code and Codex: each session you connect gets its own name in ThreadPage, reads your threads, adds notes, and takes the requests you address to it.
+The ThreadPage plugins for Claude Code and Codex: each session you connect gets its own name in ThreadPage. On ThreadPage Pro with Sync on, the session reads your threads, adds notes, and takes the requests you address to its @name. On Free, or on Pro without Sync, it only adds notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro: connect the session under a new name (`/threadpage:connect as <name>` in Claude Code, `$threadpage:connect as <name>` in Codex) to read and take requests. Only you, the account's owner, can address a request to your sessions.
 
 This repository is a read-only mirror. It is updated only from tagged ThreadPage releases, and changes are made only by ThreadPage. To report a security problem, see `SECURITY.md`.
 
@@ -12,7 +12,7 @@ The plugins run on macOS, Linux and Windows through WSL, and need Node.js 22.20 
 claude plugin install threadpage --marketplace ThreadPage/threadpage-companion
 ```
 
-Then, in a Claude Code session, `/threadpage:connect` connects it under a name suggested from its folder (`/threadpage:connect as <name>` picks one); you approve it once in ThreadPage in your browser. A request addressed to the session reaches it through its inbox: an idle session starts a turn, a busy one reads it between tool calls. If "Messages from your other sessions" (`crossSessionInbound`) holds or refuses it, `/threadpage:next` takes it. Requests run with that session's own permissions, so Claude Code asks you for what needs approval, as usual.
+Then, in a Claude Code session, `/threadpage:connect` connects it under a name suggested from its folder (`/threadpage:connect as <name>` picks one); you approve it once in ThreadPage in your browser. A request addressed to the session reaches it through its inbox and doesn't wait for anyone at the terminal: an idle session starts a turn by itself, a busy one reads it between tool calls. It runs with that session's own mode, rules and approvals, so a session that skips approval prompts carries it out without asking. To keep requests from starting by themselves, set "Messages from your other sessions" (`crossSessionInbound`) in `/config` to `hold` or `refuse`; `/threadpage:next` then takes them.
 
 ## Codex
 
@@ -21,7 +21,7 @@ codex plugin marketplace add ThreadPage/threadpage-companion
 codex plugin add threadpage@threadpage
 ```
 
-Then start a new Codex session, send it any message, and type `$threadpage:connect` (or `$threadpage:connect as <name>`); you approve each connection in ThreadPage in your browser. A request addressed to the session starts after the running turn, with the session's own permissions; `$threadpage:next` takes the oldest waiting request. `Live` in ThreadPage means the Codex session is loaded, not that anyone is looking at it. To give a Codex session only its own name, start it with `codex --disable apps`, so the ChatGPT apps connector does not add a second ThreadPage connection.
+Then start a new Codex session, send it any message, and type `$threadpage:connect` (or `$threadpage:connect as <name>`); you approve each connection in ThreadPage in your browser. A request addressed to the session starts once it has no running turn, with the session's own sandbox and approval settings, so under `--ask-for-approval never` it runs without asking; `$threadpage:next` takes the oldest waiting request. `Live` in ThreadPage means the Codex session is loaded, not that anyone is looking at it. To stop requests from starting in a session, Disconnect it in ThreadPage. To give a Codex session only its own name, start it with `codex --disable apps`, so the ChatGPT apps connector does not add a second ThreadPage connection.
 
 ## More
 

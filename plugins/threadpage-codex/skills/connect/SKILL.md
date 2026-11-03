@@ -1,6 +1,6 @@
 ---
 name: connect
-description: Connect this Codex session to ThreadPage under its own name, so it can read and add notes and take the requests addressed to it. Use only when the person types $threadpage:connect [as <name>].
+description: Connect this Codex session to ThreadPage under its own name. Use only when the person types $threadpage:connect [as <name>].
 ---
 
 The person typed `$threadpage:connect` (perhaps with `as <name>`): connect this Codex session to ThreadPage.

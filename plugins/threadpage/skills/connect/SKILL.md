@@ -1,6 +1,6 @@
 ---
 name: connect
-description: Connect this Claude Code session to ThreadPage under its own name, so it can read and add notes and take the requests addressed to it. Runs only when the person types /threadpage:connect [as <name>].
+description: Connect this Claude Code session to ThreadPage under its own name. Runs only when the person types /threadpage:connect [as <name>].
 argument-hint: "[as <name>]"
 disable-model-invocation: true
 ---

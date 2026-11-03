@@ -2,6 +2,20 @@
   "schema": 1,
   "releases": [
     {
+      "version": "1.9.0",
+      "date": "2026-11-03",
+      "clients": {
+        "threadpage": "1.9.0",
+        "threadpage-codex": "1.9.0"
+      },
+      "notes": [
+        "On ThreadPage Pro with Sync a session reads, adds and takes requests to its @name; on Free, or Pro without Sync, it adds notes to your Inbox, and /threadpage:next and $threadpage:next say so.",
+        "The READMEs say what runs without you, what the plugins keep and send, and how to keep requests from starting by themselves.",
+        "A Stop holds a Claude Code session only for a request it claimed.",
+        "A listing icon for the Claude Code plugin; LICENSE and NOTICE in each plugin folder."
+      ]
+    },
+    {
       "version": "1.8.0",
       "date": "2026-11-02",
       "clients": {

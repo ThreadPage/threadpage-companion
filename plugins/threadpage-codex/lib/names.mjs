@@ -49,9 +49,10 @@ export function nameMap(origin, env = process.env) {
         yield name;
       }
     },
-    /** The tag this conversation held, for a server restarted in the same conversation. */
+    /** The tag this conversation held in the last 30 days, for a server restarted in the same conversation. */
     forSession(sessionId) {
-      return SESSION_ID.test(sessionId || '') ? load().mine.sessions[sessionId]?.tag || null : null;
+      const entry = SESSION_ID.test(sessionId || '') ? load().mine.sessions[sessionId] : null;
+      return entry?.tag && Date.now() - Date.parse(entry.at) <= KEEP_SESSIONS_MS ? entry.tag : null;
     },
     /** This folder and conversation now hold `tag`, in Claude Code process `pid`. */
     hold(tag, { folder, sessionIds = [], pid }) {

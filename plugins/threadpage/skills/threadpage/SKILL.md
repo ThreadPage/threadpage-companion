@@ -9,7 +9,7 @@ ThreadPage (https://thread.page) is a private workspace for ongoing work. Its MC
 
 ## Connect
 
-This skill comes with the ThreadPage plugin for Claude Code, which is this session's own connection to ThreadPage. If ThreadPage's note tools aren't available, the session isn't connected yet: ask the person to type `/threadpage:connect` (or `/threadpage:connect as <name>` to choose the session's name). They approve it once in ThreadPage in the browser, and the note tools appear. Don't add ThreadPage another way, as a connector or an MCP server: that second connection wouldn't act under this session's name.
+This skill comes with the ThreadPage plugin for Claude Code, which is this session's own connection to ThreadPage and reaches the server named above for it. If ThreadPage's note tools aren't available, the session isn't connected yet: ask the person to type `/threadpage:connect` (or `/threadpage:connect as <name>` to choose the session's name). They approve it once in ThreadPage in the browser, and the note tools appear. Don't add ThreadPage another way, as a connector or an MCP server: that second connection wouldn't act under this session's name.
 
 If the person asks for something your tools don't do, call get_access and give them its manage_url.
 

@@ -95,9 +95,15 @@ const sleep = (ms, signal) => new Promise((resolve, reject) => {
   signal?.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
 });
 
+/** A TLS failure fetch reports as its cause: a certificate this computer doesn't trust, often a proxy's. */
+const CERTIFICATE = /CERT|SELF_SIGNED|UNABLE_TO_(?:GET|VERIFY)/;
+
 /** The words for a refusal of `connect` or `token`. */
 export function refusal(error, { name, origin }) {
-  if (!(error instanceof ApiError)) return `ThreadPage at ${origin} couldn't be reached (${error.message}). Try again: ${AGENT.connect}`;
+  if (!(error instanceof ApiError)) {
+    const proxy = CERTIFICATE.test(String(error?.cause?.code || '')) ? ' If a proxy on this network inspects HTTPS, give Node its certificate with NODE_EXTRA_CA_CERTS, then restart the session.' : '';
+    return `ThreadPage at ${origin} couldn't be reached (${error.message}${error?.cause?.code ? `: ${error.cause.code}` : ''}).${proxy} Try again: ${AGENT.connect}`;
+  }
   if (error.code === 'handle_taken') return `The name ${name} is taken in ThreadPage. Choose another: ${AGENT.connect} as <name>`;
   if (error.code === 'invalid_handle') return `${name} can't be a ThreadPage name: use up to 32 letters, digits, _ or -.`;
   if (error.status === 429) return `ThreadPage asks to wait ${error.retryAfter ?? 60} s before connecting again.`;

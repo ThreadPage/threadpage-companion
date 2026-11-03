@@ -57,6 +57,9 @@ try { origin = configuredOrigin(); } catch (error) { originProblem = error.messa
 // key: never logged or written, and gone from the environment, which the browser it opens would inherit.
 const inboxSocket = process.env.CLAUDE_CODE_MESSAGING_SOCKET, inboxToken = process.env.CLAUDE_CODE_MESSAGING_TOKEN;
 delete process.env.CLAUDE_CODE_MESSAGING_TOKEN;
+// Every certificate is checked, also when this file was started some other way than through launch.mjs: Node reads
+// this variable for each new connection. A proxy that inspects HTTPS goes through NODE_EXTRA_CA_CERTS instead.
+delete process.env.NODE_TLS_REJECT_UNAUTHORIZED;
 
 const pid = claudePid(); // the agent's process: Claude Code, or Codex (its TUI or app-server)
 const startPpid = process.ppid;
@@ -88,6 +91,7 @@ const state = {
   generation: 0,
   poll: null,
   pushed: new Set(),
+  claimed: new Set(), // the requests this process called claim_request for: only their Stop holds the session
   inflight: new Map(),
   asked: new Map(),
   digitsDeclined: false,
@@ -183,8 +187,8 @@ const connectTool = () => ({
   name: 'threadpage_connect',
   title: 'Connect to ThreadPage',
   description: CODEX
-    ? 'Connect this Codex session to ThreadPage under its own name (@name), so it can read and add notes and take the requests addressed to it. Call it only when the person asks ($threadpage:connect [as <name>]); ThreadPage opens in the browser for the person to approve.'
-    : 'Connect this Claude Code session to ThreadPage under its own name (@name), so it can read and add notes and take the requests addressed to it. Call it only when the person asks (/threadpage:connect [as <name>]); Claude Code asks them before it runs, and ThreadPage may open in the browser for one click.',
+    ? 'Connect this Codex session to ThreadPage under its own name. On ThreadPage Pro with Sync it can then read and add notes and take the requests addressed to its @name; otherwise it adds notes to the person\'s Inbox. Call it only when the person asks ($threadpage:connect [as <name>]); ThreadPage opens in the browser for the person to approve.'
+    : 'Connect this Claude Code session to ThreadPage under its own name. On ThreadPage Pro with Sync it can then read and add notes and take the requests addressed to its @name; otherwise it adds notes to the person\'s Inbox. Call it only when the person asks (/threadpage:connect [as <name>]); Claude Code asks them before it runs, and ThreadPage may open in the browser for one click.',
   inputSchema: { type: 'object', properties: { name: { type: 'string', maxLength: 32, description: `The name from "${AGENT.connect} as <name>": letters, digits, _ or -. Leave it out to use the suggested one.` } }, additionalProperties: false },
   annotations: { title: 'Connect to ThreadPage', readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   _meta: { 'anthropic/requiresUserInteraction': true },
@@ -415,6 +419,8 @@ function deliver(page) {
   for (const stop of page.stops || []) {
     // Codex has no hooks to hold a turn: its Stop is ThreadPage refusing this key's tools for that request.
     if (!ID.test(stop.request_id || '') || CODEX) continue;
+    // A request stopped before this session claimed it never started here: the turn running now is someone else's.
+    if (!state.claimed.has(stop.request_id.toLowerCase())) continue;
     // The owner's Stop: the PreToolUse guard refuses this session's tool calls until its turn ends.
     writeJson(paths().stop(pid), { request_id: stop.request_id, at: new Date().toISOString() });
   }
@@ -457,13 +463,30 @@ async function pollLoop(generation) {
 
 // The hosted tools ----------------------------------------------------------------------------------------------------
 
+/** A request stays claimed here only while it may run here: a refused claim and a request this session finished, asked
+ *  the owner about or gave up drop it, so a later Stop for it never holds a turn of the person's own. */
+const SETTLED = new Set(['needs_input', 'failed', 'cancelled', 'outcome_unknown']);
+function settleClaim(params, ok) {
+  const requestId = String(params?.arguments?.request_id ?? '').toLowerCase();
+  if (!requestId) return;
+  const name = params?.name, reported = params?.arguments?.state;
+  if (name === 'claim_request' && !ok) state.claimed.delete(requestId);
+  // `running` without a claim_id claims the request too.
+  else if (ok && name === 'report_request_status' && reported === 'running' && !params.arguments.claim_id) state.claimed.add(requestId);
+  else if (ok && (name === 'complete_request' || (name === 'report_request_status' && SETTLED.has(reported)))) state.claimed.delete(requestId);
+}
+
 async function proxy(id, params) {
   refCheck();
   if (!state.key) return send({ id, result: text(state.ended ? `${state.ended}\n${CONNECT_FIRST}` : CONNECT_FIRST, true) });
   // Codex: only the thread open now starts a request; an older one, hidden behind it, never does.
   if (CODEX && params?.name === 'claim_request' && liveness()) return send({ id, result: text(NOT_OPEN, true) });
   if (inbox && params?.name === 'list_requests') inbox.looked();
-  if (inbox && params?.name === 'claim_request') inbox.claimed(String(params.arguments?.request_id).toLowerCase());
+  if (params?.name === 'claim_request') {
+    const requestId = String(params.arguments?.request_id).toLowerCase();
+    state.claimed.add(requestId);
+    inbox?.claimed(requestId);
+  }
   // What ThreadPage would store: a value that looks like a credential is named and left out.
   const credential = WRITES.test(String(params?.name)) ? credentialIn(params.arguments) : null;
   if (credential) return send({ id, result: text(`Remove what looks like ${/^[AEIOU]/.test(credential) ? 'an' : 'a'} ${credential} and send again.`, true) });
@@ -474,8 +497,10 @@ async function proxy(id, params) {
   const key = state.key;
   try {
     const message = await api.callTool(key, params, controller.signal);
+    settleClaim(params, !message.error && !message.result?.isError);
     if (!controller.signal.aborted) send(message.error ? { id, error: message.error } : { id, result: message.result });
   } catch (error) {
+    settleClaim(params, false);
     if (controller.signal.aborted) return undefined; // cancelled: Claude Code expects no answer
     if (error instanceof ApiError && error.status === 401) {
       if (state.key === key) ended(error.details);

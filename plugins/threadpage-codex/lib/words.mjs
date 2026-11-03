@@ -2,7 +2,7 @@
 // What the session says about its connection.
 import { AGENT } from './agent.mjs';
 
-export const NOT_CONNECTED = `This session isn't connected to ThreadPage. Connect it to read and add notes: ${AGENT.connect}.`;
+export const NOT_CONNECTED = `This session isn't connected to ThreadPage. Connect it: ${AGENT.connect}.`;
 
 /** `@name` on Pro, where the tag is a handle; the bare name on Free. */
 export const who = session => (session?.handle ? `@${session.handle}` : session?.name || 'This session');
