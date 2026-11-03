@@ -1,6 +1,6 @@
 {
   "name": "threadpage",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Connect a Claude Code session to ThreadPage under its own name. On ThreadPage Pro with Sync, it reads and adds notes and takes the requests you address to it; otherwise, it only adds notes to your Inbox.",
   "author": {
     "name": "ThreadPage",

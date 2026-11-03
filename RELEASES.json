@@ -2,6 +2,20 @@
   "schema": 1,
   "releases": [
     {
+      "version": "1.10.0",
+      "date": "2026-11-03",
+      "clients": {
+        "threadpage": "1.10.0",
+        "threadpage-codex": "1.10.0"
+      },
+      "notes": [
+        "A Stop holds a session for a request it still runs: a re-claim, a needs_input answer and a result that wasn't recorded keep the request held.",
+        "A claim ThreadPage refused no longer leaves a Stop holding a turn of your own.",
+        "/threadpage:next and $threadpage:next say plainly when a session's name takes no requests, and how to connect one that does.",
+        "The READMEs say a name first connected on Free or without Sync keeps that access after you move to Pro or turn on Sync."
+      ]
+    },
+    {
       "version": "1.9.0",
       "date": "2026-11-03",
       "clients": {

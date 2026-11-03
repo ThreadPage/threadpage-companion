@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.10.0 — 2026-11-03
+
+- A Stop holds a session for a request it still runs: a re-claim, a needs_input answer and a result that wasn't recorded keep the request held.
+- A claim ThreadPage refused no longer leaves a Stop holding a turn of your own.
+- /threadpage:next and $threadpage:next say plainly when a session's name takes no requests, and how to connect one that does.
+- The READMEs say a name first connected on Free or without Sync keeps that access after you move to Pro or turn on Sync.
+
+Changes: https://github.com/ThreadPage/threadpage-companion/compare/v1.9.0...v1.10.0
+
 ## v1.9.0 — 2026-11-03
 
 - On ThreadPage Pro with Sync a session reads, adds and takes requests to its @name; on Free, or Pro without Sync, it adds notes to your Inbox, and /threadpage:next and $threadpage:next say so.

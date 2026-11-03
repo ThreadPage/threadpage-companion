@@ -1,6 +1,6 @@
 # ThreadPage for Codex
 
-Connects a Codex session to your ThreadPage (https://thread.page) under its own name. On ThreadPage Pro with Sync on, the session can read your threads, add notes, and take the requests you address to its @name. On Free, or on Pro without Sync, it can only add notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro: connect the session under a new name (`$threadpage:connect as <name>`) to read and take requests.
+Connects a Codex session to your ThreadPage (https://thread.page) under its own name. On ThreadPage Pro with Sync on, the session can read your threads, add notes, and take the requests you address to its @name. On Free, or on Pro without Sync, it can only add notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro or turn on Sync. To take requests, connect the session under a new name (`$threadpage:connect as <name>`).
 
 ## Use
 

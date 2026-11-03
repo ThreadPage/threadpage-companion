@@ -32,6 +32,8 @@ import { connectedLine, endedSentence, NOT_CONNECTED, who } from '../lib/words.m
 const PROTOCOL = '2025-11-25';
 const REF = /^[A-Za-z0-9_-]{1,128}$/;
 const ID = /^[0-9a-f-]{36}$/i;
+/** A request id as a Stop names it, lowercase and hyphenated; ThreadPage takes it without hyphens too. */
+const requestKey = value => String(value ?? '').toLowerCase().replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/, '$1-$2-$3-$4-$5');
 const WRITES = /^(?:create_|update_|complete_|report_)/;
 const CLAUDE_INSTRUCTIONS = [
   'ThreadPage: this session reaches the person\'s ThreadPage under its own name once the person connects it with /threadpage:connect (the threadpage_connect tool; Claude Code asks them first). Until then only threadpage_status and threadpage_connect exist; the note tools appear after connecting.',
@@ -91,7 +93,7 @@ const state = {
   generation: 0,
   poll: null,
   pushed: new Set(),
-  claimed: new Set(), // the requests this process called claim_request for: only their Stop holds the session
+  claimed: new Set(), // the requests this session claimed and still runs (settleClaim): only their Stop holds it
   inflight: new Map(),
   asked: new Map(),
   digitsDeclined: false,
@@ -420,9 +422,12 @@ function deliver(page) {
     // Codex has no hooks to hold a turn: its Stop is ThreadPage refusing this key's tools for that request.
     if (!ID.test(stop.request_id || '') || CODEX) continue;
     // A request stopped before this session claimed it never started here: the turn running now is someone else's.
-    if (!state.claimed.has(stop.request_id.toLowerCase())) continue;
-    // The owner's Stop: the PreToolUse guard refuses this session's tool calls until its turn ends.
+    const requestId = requestKey(stop.request_id);
+    if (!state.claimed.has(requestId)) continue;
+    // The owner's Stop: the PreToolUse guard refuses this session's tool calls until its turn ends. The request has
+    // ended, so the same Stop sent again later (a first look re-sends them) holds no turn of the person's own.
     writeJson(paths().stop(pid), { request_id: stop.request_id, at: new Date().toISOString() });
+    state.claimed.delete(requestId);
   }
 }
 
@@ -463,17 +468,29 @@ async function pollLoop(generation) {
 
 // The hosted tools ----------------------------------------------------------------------------------------------------
 
-/** A request stays claimed here only while it may run here: a refused claim and a request this session finished, asked
- *  the owner about or gave up drop it, so a later Stop for it never holds a turn of the person's own. */
+/** The calls that claim a request: claim_request, and report_request_status running, which claims one without a
+ *  claim_id and proves this run holds it with one. Its request is held from before the call is sent, so a Stop that
+ *  comes while the call runs holds the turn. */
+const claims = params => params?.name === 'claim_request' || (params?.name === 'report_request_status' && params.arguments?.state === 'running');
 const SETTLED = new Set(['needs_input', 'failed', 'cancelled', 'outcome_unknown']);
-function settleClaim(params, ok) {
-  const requestId = String(params?.arguments?.request_id ?? '').toLowerCase();
+
+/** A request stays held here while it may run here, so that only its Stop holds this session's turn. `result`: the
+ *  call's, or null when ThreadPage refused it or never answered. */
+function settleClaim(params, requestId, heldBefore, result) {
   if (!requestId) return;
-  const name = params?.name, reported = params?.arguments?.state;
-  if (name === 'claim_request' && !ok) state.claimed.delete(requestId);
-  // `running` without a claim_id claims the request too.
-  else if (ok && name === 'report_request_status' && reported === 'running' && !params.arguments.claim_id) state.claimed.add(requestId);
-  else if (ok && (name === 'complete_request' || (name === 'report_request_status' && SETTLED.has(reported)))) state.claimed.delete(requestId);
+  if (!result) {
+    // A refused claim lets go only of a request this call held: claiming its own request again is refused too. A Stop
+    // of it written meanwhile goes as well, since the turn it would hold is the person's own.
+    if (!claims(params) || heldBefore) return;
+    state.claimed.delete(requestId);
+    if (requestKey(readJson(paths().stop(pid))?.request_id) === requestId) remove(paths().stop(pid));
+  } else if (params.name === 'complete_request'
+    // A result ThreadPage didn't write leaves the request open, and still claimed by this run.
+    ? result.structuredContent?.request?.state === 'completed'
+    // Asked the owner (the answer comes as a request of its own) or gave up.
+    : params.name === 'report_request_status' && SETTLED.has(params.arguments.state)) {
+    state.claimed.delete(requestId);
+  }
 }
 
 async function proxy(id, params) {
@@ -482,25 +499,25 @@ async function proxy(id, params) {
   // Codex: only the thread open now starts a request; an older one, hidden behind it, never does.
   if (CODEX && params?.name === 'claim_request' && liveness()) return send({ id, result: text(NOT_OPEN, true) });
   if (inbox && params?.name === 'list_requests') inbox.looked();
-  if (params?.name === 'claim_request') {
-    const requestId = String(params.arguments?.request_id).toLowerCase();
-    state.claimed.add(requestId);
-    inbox?.claimed(requestId);
-  }
+  const requestId = requestKey(params?.arguments?.request_id);
+  if (params?.name === 'claim_request') inbox?.claimed(requestId);
   // What ThreadPage would store: a value that looks like a credential is named and left out.
   const credential = WRITES.test(String(params?.name)) ? credentialIn(params.arguments) : null;
   if (credential) return send({ id, result: text(`Remove what looks like ${/^[AEIOU]/.test(credential) ? 'an' : 'a'} ${credential} and send again.`, true) });
   const unsafe = unsafeProcess();
   if (unsafe) { await endKey(); listChanged(); return send({ id, result: text(unsafeMessage(unsafe), true) }); }
+  const heldBefore = state.claimed.has(requestId);
+  if (requestId && claims(params)) state.claimed.add(requestId);
   const controller = new AbortController();
   state.inflight.set(id, controller);
   const key = state.key;
   try {
     const message = await api.callTool(key, params, controller.signal);
-    settleClaim(params, !message.error && !message.result?.isError);
+    settleClaim(params, requestId, heldBefore, message.error || message.result?.isError ? null : message.result);
     if (!controller.signal.aborted) send(message.error ? { id, error: message.error } : { id, result: message.result });
   } catch (error) {
-    settleClaim(params, false);
+    // A call without an answer may have claimed after all, but the model got no note: it claims again or leaves it.
+    settleClaim(params, requestId, heldBefore, null);
     if (controller.signal.aborted) return undefined; // cancelled: Claude Code expects no answer
     if (error instanceof ApiError && error.status === 401) {
       if (state.key === key) ended(error.details);

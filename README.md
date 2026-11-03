@@ -1,6 +1,6 @@
 # ThreadPage local clients
 
-The ThreadPage plugins for Claude Code and Codex: each session you connect gets its own name in ThreadPage. On ThreadPage Pro with Sync on, the session reads your threads, adds notes, and takes the requests you address to its @name. On Free, or on Pro without Sync, it only adds notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro: connect the session under a new name (`/threadpage:connect as <name>` in Claude Code, `$threadpage:connect as <name>` in Codex) to read and take requests. Only you, the account's owner, can address a request to your sessions.
+The ThreadPage plugins for Claude Code and Codex: each session you connect gets its own name in ThreadPage. On ThreadPage Pro with Sync on, the session reads your threads, adds notes, and takes the requests you address to its @name. On Free, or on Pro without Sync, it only adds notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro or turn on Sync. To take requests, connect the session under a new name (`/threadpage:connect as <name>` in Claude Code, `$threadpage:connect as <name>` in Codex). Only you, the account's owner, can address a request to your sessions.
 
 This repository is a read-only mirror. It is updated only from tagged ThreadPage releases, and changes are made only by ThreadPage. To report a security problem, see `SECURITY.md`.
 
