@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "threadpage_session": {
+      "type": "stdio",
       "command": "node",
       "args": ["./server/launch.mjs"],
       "cwd": ".",

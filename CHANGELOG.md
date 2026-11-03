@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.11.0 — 2026-11-03
+
+- A session name whose access you never changed follows your plan: once you're on ThreadPage Pro with Sync on, it reads, adds and takes requests; /threadpage:next and $threadpage:next point to Receive requests otherwise.
+- When ThreadPage changes a session's access or name, the session reloads its tools on its next check, and its threadpage_status tool names its access level.
+- In Claude Code, a Stop holds every request stopped in the turn, and a claim ThreadPage refuses while another call for the same request runs no longer drops that request.
+- Listing details for the plugin directories: the Claude Code plugin's display name, links and keywords, and the Codex plugin's short description, icons and support link.
+
+Changes: https://github.com/ThreadPage/threadpage-companion/compare/v1.10.0...v1.11.0
+
 ## v1.10.0 — 2026-11-03
 
 - A Stop holds a session for a request it still runs: a re-claim, a needs_input answer and a result that wasn't recorded keep the request held.

@@ -1,7 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 # The owner's Stop. While ~/.threadpage/sessions/<Claude Code pid>.json exists, hook.mjs refuses this
-# session's tool calls; the end of the turn removes it. Without that file every event ends at this one test.
+# session's tool calls; the end of the turn removes it, with every request it names. Without that file every event
+# ends at this one test.
 stop="${HOME}/.threadpage/sessions/${CLAUDE_PID:-none}.json"
 # A typed prompt or the end of the turn ends every permission prompt (prompt.sh); a tool call doesn't: one may run
 # beside a prompt that is still open.

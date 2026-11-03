@@ -7,8 +7,11 @@ export const NOT_CONNECTED = `This session isn't connected to ThreadPage. Connec
 /** `@name` on Pro, where the tag is a handle; the bare name on Free. */
 export const who = session => (session?.handle ? `@${session.handle}` : session?.name || 'This session');
 
+// The access levels as ThreadPage names them; Add to Inbox reads as what it does.
+const LEVELS = { inbox: 'Adds to your Inbox', append: 'Add only', read: 'Read only', read_add: 'Read and add', full: 'Edit and organize' };
+
 export function connectedLine(session) {
-  return `Connected as ${who(session)} · ${session.level === 'inbox' ? 'Adds to your Inbox' : 'Read and add'}.`;
+  return `Connected as ${who(session)} · ${LEVELS[session.level] ?? 'Read and add'}.`;
 }
 
 function clock(at) {

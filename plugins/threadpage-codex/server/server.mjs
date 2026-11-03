@@ -32,8 +32,8 @@ import { connectedLine, endedSentence, NOT_CONNECTED, who } from '../lib/words.m
 const PROTOCOL = '2025-11-25';
 const REF = /^[A-Za-z0-9_-]{1,128}$/;
 const ID = /^[0-9a-f-]{36}$/i;
-/** A request id as a Stop names it, lowercase and hyphenated; ThreadPage takes it without hyphens too. */
-const requestKey = value => String(value ?? '').toLowerCase().replace(/^([0-9a-f]{8})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{4})([0-9a-f]{12})$/, '$1-$2-$3-$4-$5');
+/** A request id as its Stop names it, lowercase. ThreadPage takes any letter case and refuses an id without hyphens. */
+const requestKey = value => String(value ?? '').toLowerCase();
 const WRITES = /^(?:create_|update_|complete_|report_)/;
 const CLAUDE_INSTRUCTIONS = [
   'ThreadPage: this session reaches the person\'s ThreadPage under its own name once the person connects it with /threadpage:connect (the threadpage_connect tool; Claude Code asks them first). Until then only threadpage_status and threadpage_connect exist; the note tools appear after connecting.',
@@ -94,6 +94,7 @@ const state = {
   poll: null,
   pushed: new Set(),
   claimed: new Set(), // the requests this session claimed and still runs (settleClaim): only their Stop holds it
+  claiming: new Map(), // request id → its claim calls in flight, which settle together (claimStarts)
   inflight: new Map(),
   asked: new Map(),
   digitsDeclined: false,
@@ -411,6 +412,9 @@ const sleep = (ms, signal) => new Promise(resolve => {
   signal.addEventListener('abort', () => { clearTimeout(timer); resolve(); }, { once: true });
 });
 
+/** The requests a guard file names: those whose Stop holds this session's turn (hooks/hook.mjs). */
+const heldIds = hold => (Array.isArray(hold?.request_ids) ? hold.request_ids : []);
+
 function deliver(page) {
   for (const row of page.requests || []) {
     // A backlog request is older than the connection's auto-claim time: it waits for /threadpage:next.
@@ -424,9 +428,11 @@ function deliver(page) {
     // A request stopped before this session claimed it never started here: the turn running now is someone else's.
     const requestId = requestKey(stop.request_id);
     if (!state.claimed.has(requestId)) continue;
-    // The owner's Stop: the PreToolUse guard refuses this session's tool calls until its turn ends. The request has
+    // The owner's Stop: the PreToolUse guard refuses this session's tool calls until its turn ends. The file names
+    // every request stopped in the turn, so a refused claim takes back its own Stop and no other. The request has
     // ended, so the same Stop sent again later (a first look re-sends them) holds no turn of the person's own.
-    writeJson(paths().stop(pid), { request_id: stop.request_id, at: new Date().toISOString() });
+    const file = paths().stop(pid);
+    writeJson(file, { request_ids: [...new Set([...heldIds(readJson(file)), requestId])], at: new Date().toISOString() });
     state.claimed.delete(requestId);
   }
 }
@@ -450,7 +456,11 @@ async function pollLoop(generation) {
       if (page?.superseded) { await sleep(1000, controller.signal); continue; }
       deliver(page || {});
       cursor = page?.cursor || cursor;
-      if (page?.access_changed) { await loadTools(); if (state.key) listChanged(); }
+      // The tag as it is now (its first look and any change carry it): a new level or handle (the owner, or its plan) is
+      // news even when the answer that said access_changed was dropped, so threadpage_status says it truly.
+      const now = page?.session, moved = !!now && (now.level !== state.session?.level || now.handle !== state.session?.handle);
+      if (now) state.session = { ...state.session, ...now };
+      if (page?.access_changed || moved) { await loadTools(); if (state.key) listChanged(); }
     } catch (error) {
       if (controller.signal.aborted || state.generation !== generation) break;
       if (state.look?.controller.signal.aborted) continue; // what it said changed: the next look says so now
@@ -474,21 +484,42 @@ async function pollLoop(generation) {
 const claims = params => params?.name === 'claim_request' || (params?.name === 'report_request_status' && params.arguments?.state === 'running');
 const SETTLED = new Set(['needs_input', 'failed', 'cancelled', 'outcome_unknown']);
 
-/** A request stays held here while it may run here, so that only its Stop holds this session's turn. `result`: the
- *  call's, or null when ThreadPage refused it or never answered. */
-function settleClaim(params, requestId, heldBefore, result) {
-  if (!requestId) return;
-  if (!result) {
-    // A refused claim lets go only of a request this call held: claiming its own request again is refused too. A Stop
-    // of it written meanwhile goes as well, since the turn it would hold is the person's own.
-    if (!claims(params) || heldBefore) return;
+/** A claim call starts: its request is held from now. The claim calls of one request in flight together settle as
+ *  one, so a refusal never lets go of a request that a call beside it claimed. `keep`: the run holds the request
+ *  whatever ThreadPage answers. It held it before, or the call carries a claim_id, which only the call that claimed
+ *  was shown: a run resuming after needs_input, which let go of it. */
+function claimStarts(params, requestId) {
+  let group = state.claiming.get(requestId);
+  if (!group) state.claiming.set(requestId, group = { calls: 0, keep: state.claimed.has(requestId) });
+  group.calls += 1;
+  if (params.name === 'report_request_status' && params.arguments?.claim_id) group.keep = true;
+  state.claimed.add(requestId);
+  return group;
+}
+
+/** A request stays held here while it may run here, so that only its Stop holds this session's turn. `group`: the
+ *  claim calls the call is one of (claimStarts); `result`: the call's, or null when ThreadPage refused it or never
+ *  answered. */
+function settleClaim(params, requestId, group, result) {
+  if (group) {
+    if (result) group.keep = true;
+    if ((group.calls -= 1)) return; // the last call of the group decides
+    state.claiming.delete(requestId);
+    // Every call was refused. Claiming its own request again is refused too, hence `keep`. A request this run never
+    // claimed is let go with a Stop of it written meanwhile, since the turn it would hold is the person's own; a
+    // Stop of another request stays.
+    if (group.keep) return;
     state.claimed.delete(requestId);
-    if (requestKey(readJson(paths().stop(pid))?.request_id) === requestId) remove(paths().stop(pid));
-  } else if (params.name === 'complete_request'
+    const file = paths().stop(pid), hold = readJson(file), held = heldIds(hold);
+    if (!held.includes(requestId)) return;
+    const rest = held.filter(id => id !== requestId);
+    if (rest.length) writeJson(file, { ...hold, request_ids: rest });
+    else remove(file);
+  } else if (requestId && result && (params.name === 'complete_request'
     // A result ThreadPage didn't write leaves the request open, and still claimed by this run.
     ? result.structuredContent?.request?.state === 'completed'
     // Asked the owner (the answer comes as a request of its own) or gave up.
-    : params.name === 'report_request_status' && SETTLED.has(params.arguments.state)) {
+    : params.name === 'report_request_status' && SETTLED.has(params.arguments.state))) {
     state.claimed.delete(requestId);
   }
 }
@@ -506,33 +537,27 @@ async function proxy(id, params) {
   if (credential) return send({ id, result: text(`Remove what looks like ${/^[AEIOU]/.test(credential) ? 'an' : 'a'} ${credential} and send again.`, true) });
   const unsafe = unsafeProcess();
   if (unsafe) { await endKey(); listChanged(); return send({ id, result: text(unsafeMessage(unsafe), true) }); }
-  const heldBefore = state.claimed.has(requestId);
-  if (requestId && claims(params)) state.claimed.add(requestId);
+  const group = requestId && claims(params) ? claimStarts(params, requestId) : null;
   const controller = new AbortController();
   state.inflight.set(id, controller);
   const key = state.key;
-  try {
-    const message = await api.callTool(key, params, controller.signal);
-    settleClaim(params, requestId, heldBefore, message.error || message.result?.isError ? null : message.result);
-    if (!controller.signal.aborted) send(message.error ? { id, error: message.error } : { id, result: message.result });
-  } catch (error) {
-    // A call without an answer may have claimed after all, but the model got no note: it claims again or leaves it.
-    settleClaim(params, requestId, heldBefore, null);
-    if (controller.signal.aborted) return undefined; // cancelled: Claude Code expects no answer
-    if (error instanceof ApiError && error.status === 401) {
-      if (state.key === key) ended(error.details);
-      return send({ id, result: text(state.ended || endedSentence(error.details), true) });
-    }
-    if (error instanceof ApiError && (error.status === 429 || error.status === 503)) {
-      const retryAfter = error.retryAfter ?? 30;
-      return send({ id, result: json({ code: error.status === 429 ? 'rate_limited' : error.code, message: `ThreadPage asks to wait ${retryAfter} s; nothing was done.`, retryable: true, details: { retry_after: retryAfter } }) });
-    }
-    if (error instanceof ApiError) return send({ id, result: json({ code: error.code, message: error.message }) });
-    return send({ id, result: text(`ThreadPage at ${origin} didn't answer (${error.message}). If this call writes, repeat it with the same operation_id or check get_operation.`, true) });
-  } finally {
-    state.inflight.delete(id);
+  let message = null, error = null;
+  try { message = await api.callTool(key, params, controller.signal); } catch (failure) { error = failure; } finally { state.inflight.delete(id); }
+  // Once, however the call ended, and before its answer goes out: the next call and the guard see it settled. A call
+  // without an answer may have claimed after all, but the model got no note: it claims again or leaves it.
+  settleClaim(params, requestId, group, message && !message.error && !message.result?.isError ? message.result : null);
+  if (controller.signal.aborted) return undefined; // cancelled: Claude Code expects no answer
+  if (message) return send(message.error ? { id, error: message.error } : { id, result: message.result });
+  if (error instanceof ApiError && error.status === 401) {
+    if (state.key === key) ended(error.details);
+    return send({ id, result: text(state.ended || endedSentence(error.details), true) });
   }
-  return undefined;
+  if (error instanceof ApiError && (error.status === 429 || error.status === 503)) {
+    const retryAfter = error.retryAfter ?? 30;
+    return send({ id, result: json({ code: error.status === 429 ? 'rate_limited' : error.code, message: `ThreadPage asks to wait ${retryAfter} s; nothing was done.`, retryable: true, details: { retry_after: retryAfter } }) });
+  }
+  if (error instanceof ApiError) return send({ id, result: json({ code: error.code, message: error.message }) });
+  return send({ id, result: text(`ThreadPage at ${origin} didn't answer (${error.message}). If this call writes, repeat it with the same operation_id or check get_operation.`, true) });
 }
 
 // Messages from Claude Code -------------------------------------------------------------------------------------------

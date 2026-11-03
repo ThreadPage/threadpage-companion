@@ -1,6 +1,6 @@
 # ThreadPage for Claude Code
 
-Connects a Claude Code session to your ThreadPage (https://thread.page) under its own name. On ThreadPage Pro with Sync on, the session can read your threads, add notes, and take the requests you address to its @name. On Free, or on Pro without Sync, it can only add notes to your Inbox: it doesn't read your notes and takes no requests. A name first connected on Free, or without Sync, keeps that access after you move to Pro or turn on Sync. To take requests, connect the session under a new name (`/threadpage:connect as <name>`).
+Connects a Claude Code session to your ThreadPage (https://thread.page) under its own name. On ThreadPage Pro with Sync on, the session can read your threads, add notes, and take the requests you address to its @name. On Free, or on Pro without Sync, it can only add notes to your Inbox: it doesn't read your notes and takes no requests. A name whose access you never changed follows your plan: once you're on Pro with Sync on, it reads, adds and takes requests too.
 
 ## Use
 

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // The ThreadPage plugin's hooks. Identity never depends on them; they hold no key.
 // - The Stop guard: when the owner stops a request this session holds, the plugin's server writes
-//   ~/.threadpage/sessions/<Claude Code pid>.json. PreToolUse then refuses the session's tool calls until its turn ends
-//   (stop-guard.sh removes the file on Stop); a prompt the person types ends it too. It is the person's own Stop.
+//   ~/.threadpage/sessions/<Claude Code pid>.json, which names every request stopped in the turn. PreToolUse then
+//   refuses the session's tool calls until its turn ends (stop-guard.sh removes the file on Stop); a prompt the person
+//   types ends it too. It is the person's own Stop.
 // - SessionStart after /clear or /resume: the server keeps the session id it was started with, so the new one is left
 //   in ~/.threadpage/sessions/<pid>.ref.json for it to send to ThreadPage (`ref`).
 // - A permission prompt: PermissionRequest marks the call Claude Code is about to ask about in
@@ -20,7 +21,10 @@ const out = value => process.stdout.write(JSON.stringify(value));
 function preToolUse() {
   const stop = readJson(paths().stop(pid));
   if (!stop) return;
-  out({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: `The owner stopped ThreadPage request ${stop.request_id}. Make no more tool calls this turn: say what you stopped and end the turn.` } });
+  // The file holds the turn whatever it names: a hook that fails lets the call through.
+  // A file an earlier version of the server wrote names one request_id.
+  const ids = Array.isArray(stop.request_ids) ? stop.request_ids : stop.request_id ? [stop.request_id] : [];
+  out({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: `The owner stopped ThreadPage request${ids.length > 1 ? 's' : ''} ${ids.join(', ')}. Make no more tool calls this turn: say what you stopped and end the turn.` } });
 }
 
 // What starts a turn without the person: a channel event of any server, a finished background task, ThreadPage's own
