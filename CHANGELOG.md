@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.12.0 — 2026-11-04
+
+- The ThreadPage skill in each plugin says how to put a file of any type in a note: upload it with upload_note_file, then place it, the way images go in.
+- The plugins' bundled list of ThreadPage's tools matches ThreadPage again, so threadpage_status no longer asks you to update a plugin that is already the newest.
+- /threadpage:next and $threadpage:next tell a session that only adds to your Inbox how to take requests: on ThreadPage Pro with Sync on, allow Read and add on its page in Settings › Connections, then turn on Receive requests.
+
+Changes: https://github.com/ThreadPage/threadpage-companion/compare/v1.11.0...v1.12.0
+
 ## v1.11.0 — 2026-11-03
 
 - A session name whose access you never changed follows your plan: once you're on ThreadPage Pro with Sync on, it reads, adds and takes requests; /threadpage:next and $threadpage:next point to Receive requests otherwise.

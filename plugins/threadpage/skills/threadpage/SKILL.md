@@ -1,11 +1,11 @@
 ---
 name: threadpage
-description: Use when working with the person's ThreadPage notes (thread.page) through its MCP tools — finding, reading or summarizing Threads and Notes; adding progress, results or decisions as Notes; editing a Note; organizing Folders and Threads; answering a request addressed to you; or formatting a Note with headings, checklists, tables, code, links, images and Note references. Covers how ThreadPage is organized, how to write Notes worth resuming from, how to edit without losing anything, and how to retry without duplicates.
+description: Use when working with the person's ThreadPage notes (thread.page) through its MCP tools — finding, reading or summarizing Threads and Notes; adding progress, results or decisions as Notes; editing a Note; organizing Folders and Threads; answering a request addressed to you; or formatting a Note with headings, checklists, tables, code, links, images, files and Note references. Covers how ThreadPage is organized, how to write Notes worth resuming from, how to edit without losing anything, and how to retry without duplicates.
 ---
 
 # ThreadPage
 
-ThreadPage (https://thread.page) is a private workspace for ongoing work. Its MCP server is `https://thread.page/mcp` (remote HTTP, OAuth sign-in in the browser). This skill was last updated on 2026-11-01; when the server's tools or `get_guide` say something different, follow the server.
+ThreadPage (https://thread.page) is a private workspace for ongoing work. Its MCP server is `https://thread.page/mcp` (remote HTTP, OAuth sign-in in the browser). This skill was last updated on 2026-11-03; when the server's tools or `get_guide` say something different, follow the server.
 
 ## Connect
 
@@ -42,7 +42,7 @@ Open questions:
 
 ## Guides
 
-- [references/formatting.md](references/formatting.md) — every Markdown and document element, with limits. Read it before writing tables, checklists, images or Note references, and before editing a Note.
+- [references/formatting.md](references/formatting.md) — every Markdown and document element, with limits. Read it before writing tables, checklists, images, files or Note references, and before editing a Note.
 - [references/working.md](references/working.md) — every tool, safe editing, operation IDs and retries, limits, errors, requests and safety.
 
 The same guides come from the server: `get_guide` with topic `formatting` or `working`, or the resources `threadpage://guide/formatting` and `threadpage://guide/working`.
